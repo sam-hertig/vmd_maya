@@ -1,0 +1,86 @@
+// This script imports a series of .obj files generated with VMD into Maya and sets keyframes for their visibility. 
+// Use this script as an alterative to ePMV for creating animations of trajectories in Maya.
+// Written by sam.hertig@gmail.com
+
+// type "internalVar -usd;" in the script editor to find the path where to put this script
+
+// current path of obj files: "/home/hertigs/renderformaya/fnIb3trajV2/"
+
+global proc importtraj(int $number_of_frames, int $number_of_reps, string $path)
+{
+
+//------------------------------------------------------------------------
+
+//Part 1: import structures… (loop over frames)
+
+//loop over frames
+$i = 0;
+while($i < $number_of_frames){
+
+file -import -type "OBJ" -ra true -namespace ("frame"+$i) -options "mo=1"  -pr -loadReferenceDepth "all" ($path+"frame"+$i+".obj");
+
+//increase the counter 
+$i++;
+
+}
+
+
+
+//------------------------------------------------------------------------
+
+//Part 2: toggle visibilities (i.e. set keys, outmost loop over frames)
+
+
+//outer loop over number of frames 
+for($i=0; $i<$number_of_frames; ++$i){
+
+//set frame (begin with 1 and not 0)
+currentTime ($i + 1);
+
+//inner (double-) loop over all representations to hide everything
+for($k=0; $k<$number_of_frames; ++$k){
+for($j=0; $j<$number_of_reps; ++$j){
+setAttr ("frame"+$k+":vmd_mol0_rep"+$j+".visibility") 0;
+setKeyframe ("frame"+$k+":vmd_mol0_rep"+$j+".v");
+}
+}
+
+//inner loop over some representations to show desired reps
+for($j=0; $j<$number_of_reps; ++$j){
+setAttr ("frame"+$i+":vmd_mol0_rep"+$j+".visibility") 1;
+setKeyframe ("frame"+$i+":vmd_mol0_rep"+$j+".v");
+}
+
+}
+
+//------------------------------------------------------------------------
+
+//Part 3: group representations… (outmost loop over reps)
+
+
+//loop while $j is less than number of reps
+$j = 0;
+while($j < $number_of_reps){
+
+//select 0th j-rep:
+select -r ("frame0:vmd_mol0_rep"+$j) ;
+
+//inner loop over frames to select all remaining j-reps:
+$i = 1;
+while($i < $number_of_frames){
+select -add ("frame"+$i+":vmd_mol0_rep"+$j) ;
+$i++;
+}
+
+//increase the counter 
+$j++;
+
+group; xform -os -piv 0 0 0;
+//select -r group1 ;
+rename "group1" ("Representation_"+$j);
+
+}
+
+
+
+}
